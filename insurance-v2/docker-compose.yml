@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: insurance
+      POSTGRES_PASSWORD: insurance
+      POSTGRES_DB: insurance
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U insurance"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://insurance:insurance@postgres:5432/insurance
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             python seed.py &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  customer-frontend:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    volumes:
+      - ./frontend/customer:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+
+  agent-frontend:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+    volumes:
+      - ./frontend/agent:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

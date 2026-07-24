@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insurance Agent Portal</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    window.API_BASE_URL = "http://localhost:8000/api/v1";
+  </script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/claim.js"></script>
+  <script>
+    window.addEventListener("hashchange", router);
+    window.addEventListener("DOMContentLoaded", router);
+  </script>
+</body>
+</html>

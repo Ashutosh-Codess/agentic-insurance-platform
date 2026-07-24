@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+datasets/*
+!datasets/.gitkeep
+models/*.h5
+!models/.gitkeep
