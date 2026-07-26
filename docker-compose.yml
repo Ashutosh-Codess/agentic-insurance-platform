@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: insuramind
+      POSTGRES_PASSWORD: insuramind
+      POSTGRES_DB: insuramind
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Serves the open-weight LLM locally (see comments in agents/crews/*.py
+  # and agents/pydantic_agents/*.py for why Ollama specifically - the doc
+  # names Llama 3/Qwen 2.5/DeepSeek as model options but doesn't say how
+  # they're served, so I picked the simplest local option).
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  backend:
+    build: ./backend
+    env_file:
+      - .env
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      # agents/, guardrails/, rag/, vector_db/ are siblings of backend/ in
+      # the repo, not inside it - they're mounted below at container-root
+      # paths, and PYTHONPATH makes them importable as top-level packages
+      # from anywhere in the backend code (see services/agent_service.py).
+      PYTHONPATH: "/:/app"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./agents:/agents
+      - ./guardrails:/guardrails
+      - ./rag:/rag
+      - ./vector_db:/vector_db
+      - ./data:/app/data
+      - ./prompts:/prompts
+    depends_on:
+      - db
+      - ollama
+
+volumes:
+  db_data:
+  ollama_data:

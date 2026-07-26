@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Claims - InsuraMind AI</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=4" />
+</head>
+<body>
+  <header id="app-header"></header>
+
+  <main>
+    <h1 class="page-title">My Claims</h1>
+    <p class="page-subtitle">Submit new claims and track decisions from your agent.</p>
+
+    <div class="card">
+      <h3>Submit a new claim</h3>
+      <div id="claim-error" class="error"></div>
+      <div id="claim-success" class="success-msg"></div>
+      <select id="claim-policy-id">
+        <option value="">Loading your policies…</option>
+      </select>
+      <select id="claim-type">
+        <option value="health">Health</option>
+        <option value="motor">Motor</option>
+        <option value="life">Life</option>
+        <option value="travel">Travel</option>
+        <option value="home">Home</option>
+      </select>
+      <input id="claim-amount" type="number" placeholder="Claimed amount (INR)" min="1" />
+      <textarea id="claim-description" placeholder="Describe the incident…"></textarea>
+      <button onclick="submitClaim()">Submit Claim</button>
+    </div>
+
+    <div class="card">
+      <h3>Upload a document</h3>
+      <p class="muted">Attach photos, reports, or invoices to an existing claim.</p>
+      <select id="upload-claim-id">
+        <option value="">Select a claim…</option>
+      </select>
+      <select id="upload-doc-type">
+        <option value="photo">Vehicle / damage photo</option>
+        <option value="report">Incident report</option>
+        <option value="invoice">Invoice / bill</option>
+      </select>
+      <input id="upload-file" type="file" />
+      <button class="secondary" onclick="uploadDocument(document.getElementById('upload-claim-id').value, document.getElementById('upload-doc-type').value, 'upload-file', 'upload-result')">Upload Document</button>
+      <p id="upload-result" class="muted"></p>
+    </div>
+
+    <h3 style="margin-top:28px;">Your claims</h3>
+    <div id="claims-list"></div>
+  </main>
+
+  <script src="../assets/js/state.js?v=4"></script>
+  <script src="../assets/js/api.js?v=4"></script>
+  <script src="../assets/js/nav.js?v=4"></script>
+  <script src="../components/claims.js?v=4"></script>
+  <script src="../components/uploader.js?v=4"></script>
+  <script>
+    async function loadPolicies() {
+      const select = document.getElementById("claim-policy-id");
+      try {
+        const policies = await Api.get("/policies/mine");
+        if (!policies.length) {
+          select.innerHTML = `<option value="">No policies — contact support</option>`;
+          return;
+        }
+        select.innerHTML = policies.map((p) =>
+          `<option value="${p.id}">${p.name} (${p.type}) — ₹${p.coverage_amount.toLocaleString()} coverage</option>`
+        ).join("");
+      } catch (err) {
+        select.innerHTML = `<option value="">Could not load policies</option>`;
+      }
+    }
+
+    async function submitClaim() {
+      const errorBox = document.getElementById("claim-error");
+      const successBox = document.getElementById("claim-success");
+      errorBox.textContent = "";
+      successBox.textContent = "";
+
+      const policyId = document.getElementById("claim-policy-id").value;
+      if (!policyId) {
+        errorBox.textContent = "Please select a policy.";
+        return;
+      }
+
+      try {
+        await Api.post("/claims", {
+          policy_id: policyId,
+          type: document.getElementById("claim-type").value,
+          claimed_amount: parseFloat(document.getElementById("claim-amount").value),
+          incident_description: document.getElementById("claim-description").value,
+        });
+        successBox.textContent = "Claim submitted! Your agent will review it shortly.";
+        document.getElementById("claim-amount").value = "";
+        document.getElementById("claim-description").value = "";
+        loadClaims();
+      } catch (err) {
+        errorBox.textContent = err.message;
+      }
+    }
+
+    function populateClaimUploadSelect(claims) {
+      const select = document.getElementById("upload-claim-id");
+      if (!claims.length) {
+        select.innerHTML = `<option value="">No claims yet</option>`;
+        return;
+      }
+      select.innerHTML = claims.map((c) =>
+        `<option value="${c.id}">${c.type} — ${c.status} — ₹${c.claimed_amount}</option>`
+      ).join("");
+    }
+
+    async function loadClaims() {
+      try {
+        const claims = await Api.get("/claims/mine");
+        renderClaimsList("claims-list", claims);
+        populateClaimUploadSelect(claims);
+      } catch (err) {
+        document.getElementById("claims-list").innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    }
+
+    (async () => {
+      const me = await Nav.guard(["customer"], "claims");
+      if (me) {
+        await loadPolicies();
+        loadClaims();
+      }
+    })();
+  </script>
+</body>
+</html>

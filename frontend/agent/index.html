@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Portal - InsuraMind AI</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=4" />
+</head>
+<body class="portal-agent" data-login-redirect="../pages/fraud-monitor.html" data-register-enabled="false" data-allowed-roles="agent,admin">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h2>Agent Portal</h2>
+      <p class="subtitle">Review claims, run analysis, and make decisions.</p>
+
+      <div class="demo-box">
+        <strong>Demo accounts</strong>
+        Agent: <code>agent@insuramind.local</code> / <code>password123</code><br />
+        Admin: <code>admin@insuramind.local</code> / <code>password123</code><br />
+        <button type="button" class="small secondary" style="margin-top:10px;" onclick="fillDemoCredentials('agent@insuramind.local', 'password123')">Use agent demo</button>
+      </div>
+
+      <div id="auth-error" class="error"></div>
+
+      <h3 style="font-size:16px; margin-bottom:12px;">Log in</h3>
+      <form onsubmit="handleLogin(event)">
+        <input id="login-email" type="email" placeholder="Email address" required />
+        <input id="login-password" type="password" placeholder="Password" required />
+        <button type="submit" style="width:100%;">Log in to Agent Portal</button>
+      </form>
+
+      <a class="portal-link" href="../customer/index.html">Customer? Go to Customer Portal →</a>
+      <a class="portal-link muted" href="../index.html">← Back to portal chooser</a>
+    </div>
+  </div>
+
+  <script src="../assets/js/state.js?v=4"></script>
+  <script src="../assets/js/api.js?v=4"></script>
+  <script src="../assets/js/auth.js?v=4"></script>
+</body>
+</html>

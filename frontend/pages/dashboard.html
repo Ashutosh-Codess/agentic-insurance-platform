@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - InsuraMind AI</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=4" />
+</head>
+<body>
+  <header id="app-header"></header>
+
+  <main>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Your profile, risk assessment, and active policies.</p>
+    <div id="profile-section"></div>
+    <div id="policies-section"></div>
+  </main>
+
+  <script src="../assets/js/state.js?v=4"></script>
+  <script src="../assets/js/api.js?v=4"></script>
+  <script src="../assets/js/nav.js?v=4"></script>
+  <script>
+    async function loadDashboard() {
+      const container = document.getElementById("profile-section");
+      const policiesContainer = document.getElementById("policies-section");
+
+      try {
+        const profile = await Api.get("/customers/me");
+        container.innerHTML = `
+          <div class="stat-row">
+            <div class="card stat-box"><div class="label">Risk Score</div><div class="value">${profile.risk_score ?? "-"}</div></div>
+            <div class="card stat-box"><div class="label">Risk Category</div><div class="value">${profile.risk_category ?? "-"}</div></div>
+            <div class="card stat-box"><div class="label">Dependents</div><div class="value">${profile.dependents ?? 0}</div></div>
+          </div>
+          <div class="card">
+            <h3>${profile.name}</h3>
+            <p class="muted">${profile.occupation || "—"} · ${profile.location || "—"}</p>
+            <p class="muted">Income: ${profile.income ? "₹" + profile.income.toLocaleString() : "—"}</p>
+          </div>
+        `;
+
+        const policies = await Api.get("/policies/mine");
+        if (!policies.length) {
+          policiesContainer.innerHTML = `<div class="card"><p class="muted">No active policies yet.</p></div>`;
+          return;
+        }
+
+        policiesContainer.innerHTML = `
+          <div class="card">
+            <h3>Your Policies</h3>
+            <p class="muted">Use these when submitting a claim on the My Claims page.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Policy</th><th>Type</th><th>Coverage</th><th>Premium</th><th>Policy ID</th></tr>
+              </thead>
+              <tbody>
+                ${policies.map((p) => `
+                  <tr>
+                    <td><strong>${p.name}</strong><br><span class="muted">${p.provider || ""}</span></td>
+                    <td>${p.type}</td>
+                    <td>₹${p.coverage_amount.toLocaleString()}</td>
+                    <td>₹${p.premium_amount.toLocaleString()}</td>
+                    <td><code>${p.id}</code></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (err) {
+        if (err.message.includes("Profile not found") || err.message.includes("404")) {
+          container.innerHTML = `
+            <div class="card">
+              <h3>Complete your profile</h3>
+              <p class="muted">Set up your profile before submitting claims.</p>
+              <div id="profile-error" class="error"></div>
+              <input id="p-name" placeholder="Full name" />
+              <input id="p-age" type="number" placeholder="Age" />
+              <input id="p-location" placeholder="Location" />
+              <input id="p-occupation" placeholder="Occupation" />
+              <input id="p-income" type="number" placeholder="Annual income (INR)" />
+              <button onclick="createProfile()">Save Profile</button>
+            </div>
+          `;
+          policiesContainer.innerHTML = "";
+        } else {
+          container.innerHTML = `<p class="error">${err.message}</p>`;
+        }
+      }
+    }
+
+    async function createProfile() {
+      try {
+        await Api.post("/customers/me", {
+          name: document.getElementById("p-name").value,
+          age: parseInt(document.getElementById("p-age").value) || null,
+          location: document.getElementById("p-location").value,
+          occupation: document.getElementById("p-occupation").value,
+          income: parseFloat(document.getElementById("p-income").value) || null,
+        });
+        loadDashboard();
+      } catch (err) {
+        document.getElementById("profile-error").textContent = err.message;
+      }
+    }
+
+    (async () => {
+      const me = await Nav.guard(["customer"], "dashboard");
+      if (me) loadDashboard();
+    })();
+  </script>
+</body>
+</html>

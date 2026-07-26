@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copilot - InsuraMind AI</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=4" />
+</head>
+<body>
+  <header id="app-header"></header>
+
+  <main>
+    <h1 class="page-title">Policy Copilot</h1>
+    <p class="page-subtitle">Ask questions about policy terms, medical rules, and coverage.</p>
+
+    <div class="card">
+      <select id="copilot-collection">
+        <option value="policy_terms">Policy Terms</option>
+        <option value="medical_rules">Medical Rules</option>
+        <option value="repair_estimates">Repair Estimates</option>
+        <option value="regulatory_rules">Regulatory Rules</option>
+      </select>
+      <textarea id="copilot-question" placeholder="e.g. Is water damage covered under my home policy?"></textarea>
+      <button onclick="sendCopilotQuestion()" id="copilot-btn">Ask Copilot</button>
+      <div class="card" style="margin-top:14px; background:#f8fafc;">
+        <p id="copilot-answer" class="copilot-answer muted">Your answer will appear here…</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="../assets/js/state.js?v=4"></script>
+  <script src="../assets/js/api.js?v=4"></script>
+  <script src="../assets/js/nav.js?v=4"></script>
+  <script src="../components/chat.js?v=4"></script>
+  <script>
+    (async () => {
+      await Nav.guard(["customer", "agent", "admin"], "copilot");
+    })();
+  </script>
+</body>
+</html>

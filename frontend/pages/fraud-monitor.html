@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claim Queue - InsuraMind AI</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=4" />
+</head>
+<body class="portal-agent">
+  <header id="app-header"></header>
+
+  <main>
+    <h1 class="page-title">Claim Queue</h1>
+    <p class="page-subtitle">Review submitted claims, run AI analysis, and record your decision.</p>
+
+    <div class="stat-row" id="queue-stats"></div>
+
+    <div class="card">
+      <h3>Manual decision</h3>
+      <p class="muted">Or use the quick actions on each claim card below.</p>
+      <input id="decision-claim-id" placeholder="Claim ID" />
+      <select id="decision-value">
+        <option value="approved">Approve</option>
+        <option value="rejected">Reject</option>
+      </select>
+      <input id="decision-amount" type="number" placeholder="Approved amount (INR, if approving)" />
+      <textarea id="decision-notes" placeholder="Decision notes for the customer…"></textarea>
+      <button onclick="submitDecision()">Submit Decision</button>
+      <p id="decision-result" class="muted"></p>
+    </div>
+
+    <h3 style="margin-top:28px;">All claims</h3>
+    <div id="claims-list"></div>
+  </main>
+
+  <script src="../assets/js/state.js?v=4"></script>
+  <script src="../assets/js/api.js?v=4"></script>
+  <script src="../assets/js/nav.js?v=4"></script>
+  <script src="../components/claims.js?v=4"></script>
+  <script>
+    async function loadQueue() {
+      try {
+        const claims = await Api.get("/claims");
+        renderClaimsList("claims-list", claims, { agentView: true, showActions: true });
+
+        const submitted = claims.filter((c) => c.status === "submitted").length;
+        const approved = claims.filter((c) => c.status === "approved").length;
+        const rejected = claims.filter((c) => c.status === "rejected").length;
+
+        document.getElementById("queue-stats").innerHTML = `
+          <div class="card stat-box"><div class="label">Pending</div><div class="value">${submitted}</div></div>
+          <div class="card stat-box"><div class="label">Approved</div><div class="value">${approved}</div></div>
+          <div class="card stat-box"><div class="label">Rejected</div><div class="value">${rejected}</div></div>
+          <div class="card stat-box"><div class="label">Total</div><div class="value">${claims.length}</div></div>
+        `;
+      } catch (err) {
+        document.getElementById("claims-list").innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    }
+
+    async function submitDecision() {
+      const claimId = document.getElementById("decision-claim-id").value.trim();
+      const resultBox = document.getElementById("decision-result");
+      if (!claimId) {
+        resultBox.textContent = "Enter a claim ID.";
+        return;
+      }
+      try {
+        await Api.post(`/claims/${claimId}/decision`, {
+          decision: document.getElementById("decision-value").value,
+          approved_amount: parseFloat(document.getElementById("decision-amount").value) || null,
+          notes: document.getElementById("decision-notes").value,
+        });
+        resultBox.textContent = "Decision recorded successfully.";
+        document.getElementById("decision-claim-id").value = "";
+        document.getElementById("decision-notes").value = "";
+        loadQueue();
+      } catch (err) {
+        resultBox.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    async function quickDecision(claimId, decision) {
+      const notes = decision === "approved"
+        ? "Approved by agent via quick action."
+        : "Rejected by agent via quick action.";
+      const amount = decision === "approved"
+        ? prompt("Enter approved amount (INR):", "")
+        : null;
+
+      try {
+        await Api.post(`/claims/${claimId}/decision`, {
+          decision,
+          approved_amount: amount ? parseFloat(amount) : null,
+          notes,
+        });
+        loadQueue();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function runAnalysis(claimId) {
+      const box = document.getElementById(`analysis-${claimId}`);
+      box.style.display = "block";
+      box.textContent = "Running AI analysis…";
+
+      try {
+        const result = await Api.post(`/claims/${claimId}/run-analysis`, {});
+        box.textContent = JSON.stringify(result, null, 2);
+      } catch (err) {
+        box.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    (async () => {
+      const me = await Nav.guard(["agent", "admin"], "queue");
+      if (me) loadQueue();
+    })();
+  </script>
+</body>
+</html>
