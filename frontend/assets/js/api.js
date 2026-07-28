@@ -1,7 +1,8 @@
 // Thin wrapper around fetch. Attaches the JWT if we have one, throws a
 // plain Error with the server's detail message on failure.
 
-const API_BASE = "http://127.0.0.1:8000/api/v1";
+// For local dev and production with Nginx, use relative path "/api/v1"
+const API_BASE = "/api/v1";
 
 const Api = {
   async request(path, { method = "GET", body, form = false } = {}) {
@@ -63,6 +64,15 @@ const Api = {
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ collection, question }),
     });
+
+    if (!res.ok) {
+      let detail = `Request failed (${res.status})`;
+      try {
+        const errBody = await res.json();
+        detail = errBody.detail || detail;
+      } catch (_) {}
+      throw new Error(detail);
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

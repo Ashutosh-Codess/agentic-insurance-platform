@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Copilot - InsuraMind AI</title>
   <link rel="stylesheet" href="../assets/css/style.css?v=4" />
+  <style>
+    @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
+    .thinking .dots span { animation-name: blink; animation-duration: 1.4s; animation-iteration-count: infinite; animation-fill-mode: both; font-size: 1.2em; font-weight: bold; }
+    .thinking .dots span:nth-child(2) { animation-delay: .2s; }
+    .thinking .dots span:nth-child(3) { animation-delay: .4s; }
+  </style>
 </head>
 <body>
   <header id="app-header"></header>
@@ -21,6 +27,11 @@
         <option value="regulatory_rules">Regulatory Rules</option>
       </select>
       <textarea id="copilot-question" placeholder="e.g. Is water damage covered under my home policy?"></textarea>
+      <div class="quick-questions" style="margin: 10px 0; display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="small secondary" onclick="document.getElementById('copilot-collection').value='policy_terms'; sendCopilotQuestion('Is water damage covered?')">Water Damage</button>
+        <button class="small secondary" onclick="document.getElementById('copilot-collection').value='medical_rules'; sendCopilotQuestion('What are the rules for pre-existing conditions?')">Pre-existing Diseases</button>
+        <button class="small secondary" onclick="document.getElementById('copilot-collection').value='repair_estimates'; sendCopilotQuestion('How much does windshield replacement cost?')">Repair Costs</button>
+      </div>
       <button onclick="sendCopilotQuestion()" id="copilot-btn">Ask Copilot</button>
       <div class="card" style="margin-top:14px; background:#f8fafc;">
         <p id="copilot-answer" class="copilot-answer muted">Your answer will appear here…</p>

@@ -1,20 +1,19 @@
 services:
   db:
     image: postgres:16-alpine
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: insuramind
-      POSTGRES_PASSWORD: insuramind
-      POSTGRES_DB: insuramind
+      # If not in .env, fallback to these defaults
+      POSTGRES_USER: ${POSTGRES_USER:-insuramind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-insuramind}
+      POSTGRES_DB: ${POSTGRES_DB:-insuramind}
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  # Serves the open-weight LLM locally (see comments in agents/crews/*.py
-  # and agents/pydantic_agents/*.py for why Ollama specifically - the doc
-  # names Llama 3/Qwen 2.5/DeepSeek as model options but doesn't say how
-  # they're served, so I picked the simplest local option).
   ollama:
     image: ollama/ollama:latest
     ports:
@@ -22,16 +21,25 @@ services:
     volumes:
       - ollama_data:/root/.ollama
 
+  ollama-init:
+    image: curlimages/curl:latest
+    depends_on:
+      - ollama
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for Ollama to be ready...';
+      while ! curl -s http://ollama:11434/api/tags > /dev/null; do sleep 2; done;
+      echo 'Ollama is ready. Pulling llama3 model...';
+      curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5:0.5b\"}';
+      echo 'Model pulled successfully.';
+      "
+
   backend:
     build: ./backend
     env_file:
       - .env
     environment:
       OLLAMA_BASE_URL: http://ollama:11434
-      # agents/, guardrails/, rag/, vector_db/ are siblings of backend/ in
-      # the repo, not inside it - they're mounted below at container-root
-      # paths, and PYTHONPATH makes them importable as top-level packages
-      # from anywhere in the backend code (see services/agent_service.py).
       PYTHONPATH: "/:/app"
     ports:
       - "8000:8000"
@@ -46,6 +54,16 @@ services:
     depends_on:
       - db
       - ollama
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
 
 volumes:
   db_data:

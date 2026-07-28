@@ -27,6 +27,7 @@
         <option value="travel">Travel</option>
         <option value="home">Home</option>
       </select>
+      <input id="claim-date" type="date" placeholder="Incident Date" />
       <input id="claim-amount" type="number" placeholder="Claimed amount (INR)" min="1" />
       <textarea id="claim-description" placeholder="Describe the incident…"></textarea>
       <button onclick="submitClaim()">Submit Claim</button>
@@ -90,6 +91,7 @@
         await Api.post("/claims", {
           policy_id: policyId,
           type: document.getElementById("claim-type").value,
+          incident_date: document.getElementById("claim-date").value || null,
           claimed_amount: parseFloat(document.getElementById("claim-amount").value),
           incident_description: document.getElementById("claim-description").value,
         });
